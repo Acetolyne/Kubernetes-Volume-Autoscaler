@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
                 # Check if we set on this PV we want to ignore the volume autoscaler
                 if pvcs_in_kubernetes[volume_description]['ignore']:
-                    print("  IGNORING scaling this because the ignore annotation was set to true")
+                    print("  IGNORING scaling this because the ignore annotation was set to true or ignore_unless_annotated is set to true and pvc does not have ignore=false")
                     print("=============================================================================================================")
                     continue
 

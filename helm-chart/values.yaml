@@ -40,6 +40,8 @@ verbose: "false"
 victoriametrics_mode: "false"
 # Auth header for mimir or cortex
 scope_orgid_auth_header: ""
+# Ignore non annotated pvcs
+ignore_unless_annotated: "false"
 
 
 # Pretty much ignore anything below here I'd say, unless you really know what you're doing.  :)
@@ -123,6 +125,10 @@ globalEnvs:
   # If you are using Cortex or Mimir you'll probably need to set an scope OrgID auth header for it
   - name: SCOPE_ORGID_AUTH_HEADER
     value: "{{ .Values.scope_orgid_auth_header }}"
+
+  # Ignore volumes that are not annotated with volume.autoscaler.kubernetes.io/ignore: "false"
+  - name: IGNORE_UNLESS_ANNOTATED
+    value: "{{ .Values.ignore_unless_annotated }}"
 
 
 # Additional pod annotations

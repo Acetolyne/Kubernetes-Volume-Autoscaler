@@ -41,6 +41,8 @@ PROMETHEUS_VERSION = "0.0.0"                                                    
 VERBOSE = True if getenv('VERBOSE', "false").lower() == "true" else False        # If we want to verbose mode
 VICTORIAMETRICS_COMPAT = True if getenv('VICTORIAMETRICS_MODE', "false").lower() == "true" else False # Whether to skip the prometheus check and assume victoriametrics
 SCOPE_ORGID_AUTH_HEADER = getenv('SCOPE_ORGID_AUTH_HEADER') or ''                # If we want to use Mimir or AgentMode which requires an orgid header.  See: https://grafana.com/docs/mimir/latest/references/http-api/#authentication
+IGNORE_UNLESS_ANNOTATED = True if getenv('IGNORE_UNLESS_ANNOTATED', "false").lower() == "true" else False # ignore non annotated PVC's
+ 
 
 
 # Simple helper to pass back
@@ -151,6 +153,7 @@ def printHeaderAndConfiguration():
     print("           VictoriaMetrics mode: {}".format("ENABLED" if VICTORIAMETRICS_COMPAT else "disabled"))
     print("X-Scope-OrgID Header for Cortex: {}".format(SCOPE_ORGID_AUTH_HEADER if len(SCOPE_ORGID_AUTH_HEADER) else "disabled"))
     print(" Sending notifications to Slack: {}".format("ENABLED" if len(slack.SLACK_WEBHOOK_URL) > 0 else "disabled"))
+    print("      Ignore non annotated pvcs: {}".format("ENABLED" if IGNORE_UNLESS_ANNOTATED else "disabled"))
     if len(slack.SLACK_WEBHOOK_URL) > 0:
         print("                  Slack channel: {}".format(slack.SLACK_CHANNEL))
         print("           Slack message prefix: {}".format(slack.SLACK_MESSAGE_PREFIX))
@@ -349,7 +352,7 @@ def convert_pvc_to_simpler_dict(pvc):
     return_dict['scale_up_max_increment'] = SCALE_UP_MAX_INCREMENT
     return_dict['scale_up_max_size']      = SCALE_UP_MAX_SIZE
     return_dict['scale_cooldown_time']    = SCALE_COOLDOWN_TIME
-    return_dict['ignore']                 = False
+    return_dict['ignore']                 = IGNORE_UNLESS_ANNOTATED
 
     # Override defaults with annotations on the PVC
     try:
@@ -401,7 +404,9 @@ def convert_pvc_to_simpler_dict(pvc):
         print("Could not convert scale_cooldown_time to int: {}".format(e))
 
     try:
-        if 'volume.autoscaler.kubernetes.io/ignore' in pvc.metadata.annotations and pvc.metadata.annotations['volume.autoscaler.kubernetes.io/ignore'].lower() == "true":
+        if 'volume.autoscaler.kubernetes.io/ignore' in pvc.metadata.annotations and pvc.metadata.annotations['volume.autoscaler.kubernetes.io/ignore'].lower() == "false" and IGNORE_UNLESS_ANNOTATED:
+            return_dict['ignore'] = False
+        else if 'volume.autoscaler.kubernetes.io/ignore' in pvc.metadata.annotations and pvc.metadata.annotations['volume.autoscaler.kubernetes.io/ignore'].lower() == "true" and not IGNORE_UNLESS_ANNOTATED:
             return_dict['ignore'] = True
     except Exception as e:
         print("Could not convert ignore to bool: {}".format(e))
